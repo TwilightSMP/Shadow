@@ -1,0 +1,43 @@
+name: Shadow
+version: 1.0
+main: com.shadow.Shadow
+api-version: 1.21
+author: TwilightSMP
+description: The ultimate cinematic SMP nickname plugin for Twilight SMP.
+
+commands:
+  nick:
+    description: Set or randomize your SMP nickname.
+    usage: /nick <name|random>
+    permission: shadow.nick
+    permission-message: "§c✦︱You lack the shadows to change names."
+  realnick:
+    description: Reveal the original username of a player.
+    usage: /realnick [player]
+    permission: shadow.realnick
+    permission-message: "§c✦︱The shadows guard that name."
+  skin:
+    description: Adopt a random SMP skin appearance.
+    usage: /skin random
+    permission: shadow.skin
+    permission-message: "§c✦︱You cannot shift your appearance."
+
+permissions:
+  shadow.nick:
+    description: Allows use of /nick
+    default: true
+  shadow.realnick:
+    description: Allows use of /realnick
+    default: true
+  shadow.skin:
+    description: Allows use of /skin
+    default: true
+  shadow.role.relic:
+    description: Grants the Relic SMP role prefix.
+    default: false
+  shadow.role.cursed:
+    description: Grants the Cursed SMP role prefix.
+    default: false
+  shadow.role.dead:
+    description: Grants the Dead SMP role prefix.
+    default: false
