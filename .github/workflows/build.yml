@@ -2,7 +2,8 @@ name: Build & Release Shadow
 
 on:
   push:
-    branches: [ '**' ]  # Matches all branches
+    branches:
+      - '**'  # Matches all branches, ensuring the workflow runs on every commit
   pull_request:
     branches: [ '**' ]  # Matches all branches
 
