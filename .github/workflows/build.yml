@@ -2,9 +2,9 @@ name: Build & Release Shadow
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ '**' ]  # Matches all branches
   pull_request:
-    branches: [ main, master ]
+    branches: [ '**' ]  # Matches all branches
 
 permissions:
   contents: write
