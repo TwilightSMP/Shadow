@@ -38,7 +38,7 @@
         <dependency>
             <groupId>net.fabricmc</groupId>
             <artifactId>fabric-api</artifactId>
-            <version>0.85.0+1.20.1</version>
+            <version>0.84.0+1.20.1</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
