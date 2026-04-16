@@ -1,142 +1,47 @@
 name: Build & Release Shadow
-name: Build & Release Shadow
 
 on:
-  push: {}
-  pull_request: {}
+  push:
+  pull_request:
 
 permissions:
   contents: write
 
 jobs:
-  gradle_build:
-    name: Build with Gradle
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon
+      - run: ./gradlew build --no-daemon
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: Shadow-1.0.jar
-          path: build/libs/Shadow-1.0.jar
+          name: Shadow.jar
+          path: build/libs/*.jar
 
   release:
-    name: Tag & Publish Release
-    needs: gradle_build
+    needs: build
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Build with Gradle
+      - name: Build
         run: ./gradlew build --no-daemon
 
-      - name: Extract version
-        id: get_version
-        run: |
-          # fallback to 1.0 if version not found
-          VERSION=$(grep -E "^\s*version\s*[:=]?\s*[\"\']?([0-9]+(\.[0-9]+)*)[\"\']?" build.gradle -m1 -o || echo "1.0")
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Generate release tag
-        id: tag
-        run: |
-          TAG="v${{ steps.get_version.outputs.version }}-build.$(date +'%Y%m%d%H%M%S')"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Generate changelog from commits
-        id: changelog
-        run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            LOG=$(git log --oneline --no-decorate | head -20)
-          else
-            LOG=$(git log "$PREV_TAG"..HEAD --oneline --no-decorate)
-          fi
-          echo "log<<EOF" >> $GITHUB_OUTPUT
-          echo "$LOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create Release & Upload JAR
+      - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "✦︱Shadow ${{ steps.tag.outputs.tag }}"
-          body: |
-            ## ✦︱Shadow ${{ steps.tag.outputs.tag }}
-
-            **Minecraft:** 1.21.x — **API:** Fabric — **Java:** 21
-
-            ### Changes
-            ```
-            ${{ steps.changelog.outputs.log }}
-            ```
-
-            ### Install
-            Drop `Shadow-${{ steps.get_version.outputs.version }}.jar` into your `mods/` folder and restart.
-          files: build/libs/Shadow-*.jar
-          draft: false
-          prerelease: false
+          tag_name: v1.0.${{ github.run_number }}
+          name: Shadow Release v1.0.${{ github.run_number }}
+          files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-            ### Changes
-            ```
-            ${{ steps.changelog.outputs.log }}
-            ```
-
-            ### Install
-            Drop `Shadow-${{ steps.get_version.outputs.version }}.jar` into your `plugins/` folder and restart.
-          files: target/Shadow-*.jar
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build:
-    name: Build with Gradle
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v3
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Build with Gradle
-        run: ./gradlew build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: Shadow-1.0.jar
-          path: build/libs/Shadow-1.0.jar
