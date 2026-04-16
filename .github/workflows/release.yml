@@ -1,0 +1,115 @@
+name: release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: setup jdk
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: compute release metadata
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --force --tags origin
+
+          CURRENT_VERSION="$(grep '^mod_version=' gradle.properties | cut -d'=' -f2 | tr -d '[:space:]')"
+          if [[ -z "${CURRENT_VERSION}" ]]; then
+            echo "Failed to read mod_version from gradle.properties" >&2
+            exit 1
+          fi
+
+          if [[ ! "${CURRENT_VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "mod_version must use semantic version format (X.Y.Z), got: ${CURRENT_VERSION}" >&2
+            exit 1
+          fi
+
+          # Consider only strict semantic tags (vX.Y.Z) and ignore run-suffixed tags.
+          LATEST_TAG="$(git tag --list --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1 || true)"
+
+          if [[ -n "${LATEST_TAG}" ]]; then
+            LATEST_TAG_VERSION="${LATEST_TAG#v}"
+            BASE_VERSION="$(printf '%s\n%s\n' "${CURRENT_VERSION}" "${LATEST_TAG_VERSION}" | sort -V | tail -n 1)"
+          else
+            BASE_VERSION="${CURRENT_VERSION}"
+          fi
+
+          IFS='.' read -r MAJOR MINOR PATCH <<< "${BASE_VERSION}"
+          NEXT_PATCH=$((PATCH + 1))
+          VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}"
+          TAG="v${VERSION}"
+
+          if git ls-remote --exit-code --tags origin "refs/tags/${TAG}" >/dev/null 2>&1; then
+            echo "Tag ${TAG} already exists, refusing to overwrite." >&2
+            exit 1
+          fi
+
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: build release jar
+        run: ./gradlew --no-daemon clean build -Pmod_version=${{ steps.meta.outputs.version }}
+
+      - name: locate release jar
+        id: artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          JAR_PATH="$(find build/libs -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' ! -name '*-dev.jar' | head -n 1)"
+          if [[ -z "${JAR_PATH}" ]]; then
+            echo "No release jar found in build/libs" >&2
+            ls -la build/libs || true
+            exit 1
+          fi
+
+          echo "jar_path=${JAR_PATH}" >> "$GITHUB_OUTPUT"
+
+      - name: create and push tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.meta.outputs.tag }}"
+          git push origin "${{ steps.meta.outputs.tag }}"
+
+      - name: create github release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: Shadow ${{ steps.meta.outputs.tag }}
+          generate_release_notes: true
+          make_latest: true
+          overwrite_files: true
+          files: ${{ steps.artifact.outputs.jar_path }}

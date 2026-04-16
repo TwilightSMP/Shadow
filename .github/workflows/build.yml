@@ -1,137 +1,31 @@
-﻿name: CI
+﻿name: build
 
-on:
-  push:
-  pull_request:
-
-permissions:
-  contents: write
+on: [pull_request, push]
 
 jobs:
   build:
-    name: Build (Gradle or Maven)
-    runs-on: ubuntu-latest
-
+    runs-on: ubuntu-24.04
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: checkout repository
+        uses: actions/checkout@v6
 
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
+      - name: validate gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: setup jdk
+        uses: actions/setup-java@v5
         with:
-          java-version: '21'
-          distribution: 'temurin'
+          java-version: '25'
+          distribution: 'microsoft'
 
-      - name: Detect build system
-        id: detect_build_system
-        run: |
-          if [ -x "./gradlew" ]; then
-            echo "build_tool=gradle" >> $GITHUB_OUTPUT
-            echo "artifact_glob=build/libs/Shadow-*.jar" >> $GITHUB_OUTPUT
-          elif [ -f "pom.xml" ]; then
-            echo "build_tool=maven" >> $GITHUB_OUTPUT
-            echo "artifact_glob=target/Shadow-*.jar" >> $GITHUB_OUTPUT
-          else
-            echo "build_tool=none" >> $GITHUB_OUTPUT
-          fi
+      - name: make gradle wrapper executable
+        run: chmod +x ./gradlew
 
-      - name: Build project
-        id: do_build
-        run: |
-          if [ "${{ steps.detect_build_system.outputs.build_tool }}" = "gradle" ]; then
-            chmod +x ./gradlew || true
-            ./gradlew build --no-daemon
-          elif [ "${{ steps.detect_build_system.outputs.build_tool }}" = "maven" ]; then
-            mvn -B package --no-transfer-progress
-          else
-            echo "No supported build system found (no gradlew or pom.xml)"
-            exit 1
-          fi
+      - name: build
+        run: ./gradlew build
 
-      - name: Locate artifact
-        id: find_artifact
-        run: |
-          set -e
-          ARTIFACTS=""
-          if [ -n "${{ steps.detect_build_system.outputs.artifact_glob }}" ]; then
-            for f in ${{ steps.detect_build_system.outputs.artifact_glob }}; do
-              if [ -e "$f" ]; then
-                ARTIFACTS="$ARTIFACTS $f"
-              fi
-            done
-          fi
-          if [ -z "$ARTIFACTS" ]; then
-            for f in build/libs/Shadow-*.jar target/Shadow-*.jar; do
-              if ls $f 1>/dev/null 2>/dev/null; then
-                ARTIFACTS="$ARTIFACTS $f"
-              fi
-            done
-          fi
-          if [ -z "$ARTIFACTS" ]; then
-            echo "No artifact found" >&2
-            exit 1
-          fi
-          ARTIFACTS=$(echo $ARTIFACTS | xargs)
-          echo "artifact=$ARTIFACTS" >> $GITHUB_OUTPUT
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - name: capture build artifacts
+        uses: actions/upload-artifact@v7
         with:
-          name: Shadow-build
-          path: ${{ steps.find_artifact.outputs.artifact }}
-
-  release:
-    name: Tag & Publish Release
-    needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Download build artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: Shadow-build
-          path: release_artifacts
-
-      - name: Determine tag
-        id: tag
-        run: |
-          TAG="v1.0.${{ github.run_number }}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-
-      - name: Generate changelog
-        id: changelog
-        run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            LOG=$(git log --oneline --no-decorate | head -20)
-          else
-            LOG=$(git log "$PREV_TAG"..HEAD --oneline --no-decorate)
-          fi
-          echo "log<<EOF" >> $GITHUB_OUTPUT
-          echo "$LOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create Release & Upload JAR
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: "✦︱Shadow ${{ steps.tag.outputs.tag }}"
-          body: |
-            ## ✦︱Shadow ${{ steps.tag.outputs.tag }}
-            **Minecraft:** 1.21.x — **API:** Fabric — **Java:** 21
-
-            ### Changes
-            ```
-            ${{ steps.changelog.outputs.log }}
-            ```
-
-            ### Install
-            Drop the attached jar into your `mods/` folder and restart.
-          files: release_artifacts/*.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          name: Artifacts
+          path: build/libs/
