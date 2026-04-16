@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "shadow",
-  "version": "1.0.0",
+  "version": "1.0",
   "name": "Shadow",
-  "description": "A Fabric mod for managing nicknames and skins.",
+  "description": "A simple server-side nickname mod.",
   "authors": ["Aaryadev"],
   "contact": {
     "homepage": "",
     "sources": ""
   },
   "license": "MIT",
-  "environment": "*",
+  "environment": "server",
   "entrypoints": {
     "main": ["com.example.shadow.Shadow"]
   },
