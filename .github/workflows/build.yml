@@ -1,57 +1,44 @@
 name: Build & Release Shadow
+name: Build & Release Shadow
 
 on:
-  push:
-    branches:
-      - '**'  # Matches all branches, ensuring the workflow runs on every commit
-  pull_request:
-    branches: [ '**' ]  # Matches all branches
+  push: {}
+  pull_request: {}
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    name: Compile & Package
+  gradle_build:
+    name: Build with Gradle
     runs-on: ubuntu-latest
 
-    outputs:
-      version: ${{ steps.get_version.outputs.version }}
-
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Set up Java 21
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
 
-      - name: Build with Maven
-        run: mvn clean package --no-transfer-progress
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
 
-      - name: Extract version from pom.xml
-        id: get_version
-        run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-      - name: Upload JAR artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Shadow-${{ steps.get_version.outputs.version }}
-          path: target/Shadow-*.jar
-          retention-days: 7
+          name: Shadow-1.0.jar
+          path: build/libs/Shadow-1.0.jar
 
   release:
     name: Tag & Publish Release
-    runs-on: ubuntu-latest
-    needs: build
+    needs: gradle_build
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
@@ -59,20 +46,20 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Java 21
+      - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
           java-version: '21'
           distribution: 'temurin'
-          cache: maven
 
-      - name: Build with Maven
-        run: mvn clean package --no-transfer-progress
+      - name: Build with Gradle
+        run: ./gradlew build --no-daemon
 
-      - name: Extract version from pom.xml
+      - name: Extract version
         id: get_version
         run: |
-          VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          # fallback to 1.0 if version not found
+          VERSION=$(grep -E "^\s*version\s*[:=]?\s*[\"\']?([0-9]+(\.[0-9]+)*)[\"\']?" build.gradle -m1 -o || echo "1.0")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate release tag
@@ -102,7 +89,21 @@ jobs:
           body: |
             ## ✦︱Shadow ${{ steps.tag.outputs.tag }}
 
-            **Minecraft:** 1.21.x — **API:** Paper — **Java:** 21
+            **Minecraft:** 1.21.x — **API:** Fabric — **Java:** 21
+
+            ### Changes
+            ```
+            ${{ steps.changelog.outputs.log }}
+            ```
+
+            ### Install
+            Drop `Shadow-${{ steps.get_version.outputs.version }}.jar` into your `mods/` folder and restart.
+          files: build/libs/Shadow-*.jar
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             ### Changes
             ```
