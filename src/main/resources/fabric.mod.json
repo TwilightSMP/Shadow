@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "shadow",
+  "version": "1.0.0",
+  "name": "Shadow",
+  "description": "A Fabric mod for managing nicknames and skins.",
+  "authors": ["Aaryadev"],
+  "contact": {
+    "homepage": "",
+    "sources": ""
+  },
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["com.example.shadow.Shadow"]
+  },
+  "depends": {
+    "fabricloader": ">=0.14.0",
+    "fabric": "*"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "random_skins": [
+    {
+      "name": "Shadow Wanderer",
+      "url": "https://textures.minecraft.net/texture/abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890"
+    },
+    {
+      "name": "Solar Knight",
+      "url": "https://textures.minecraft.net/texture/123456abcdef123456abcdef123456abcdef123456abcdef123456abcdef123456"
+    },
+    {
+      "name": "Twilight Specter",
+      "url": "https://textures.minecraft.net/texture/fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210"
+    },
+    {
+      "name": "Golden Sentinel",
+      "url": "https://textures.minecraft.net/texture/0f1e2d3c4b5a69788766554433221100aabbccddeeff00112233445566778899"
+    },
+    {
+      "name": "Lunar Phantom",
+      "url": "https://textures.minecraft.net/texture/11223344556677889900aabbccddeeff00112233445566778899aabbccddeeff"
+    }
+  ]
+}
