@@ -36,9 +36,9 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>net.fabricmc</groupId>
+            <groupId>net.fabricmc.fabric-api</groupId>
             <artifactId>fabric-api</artifactId>
-            <version>0.83.0+1.20.1</version>
+            <version>0.90.0+1.20.1</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>
