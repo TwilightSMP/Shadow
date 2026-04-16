@@ -72,7 +72,6 @@
                 </configuration>
             </plugin>
             <plugin>
-                <id>fabric-loom</id>
                 <groupId>net.fabricmc</groupId>
                 <artifactId>fabric-loom</artifactId>
                 <version>1.0-SNAPSHOT</version>
