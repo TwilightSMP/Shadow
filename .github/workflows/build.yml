@@ -9,20 +9,16 @@ jobs:
       - name: checkout repository
         uses: actions/checkout@v6
 
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
-
       - name: setup jdk
         uses: actions/setup-java@v5
         with:
-          java-version: '25'
-          distribution: 'microsoft'
+          java-version: '21'
+          distribution: 'temurin'
 
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
-
-      - name: build
-        run: ./gradlew build
+      - name: run gradle build
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: build
 
       - name: capture build artifacts
         uses: actions/upload-artifact@v7

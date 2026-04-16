@@ -23,17 +23,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: validate gradle wrapper
-        uses: gradle/actions/wrapper-validation@v6
-
       - name: setup jdk
         uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
-
-      - name: make gradle wrapper executable
-        run: chmod +x ./gradlew
 
       - name: compute release metadata
         id: meta
@@ -78,7 +72,9 @@ jobs:
           echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
 
       - name: build release jar
-        run: ./gradlew --no-daemon clean build -Pmod_version=${{ steps.meta.outputs.version }}
+        uses: gradle/gradle-build-action@v2
+        with:
+          arguments: --no-daemon clean build -Pmod_version=${{ steps.meta.outputs.version }}
 
       - name: locate release jar
         id: artifact
